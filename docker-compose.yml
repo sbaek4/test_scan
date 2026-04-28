@@ -36,12 +36,20 @@ services:
     depends_on:
       - postgres
       - kafka
+      - dynamodb
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://app:app@postgres:5432/test_scan
       KAFKA_BROKER: kafka:29092
       WEBHOOK_SECRET: dev_secret
       SCAN_REQUEST_TOPIC: scan.requests
+      SCAN_DLQ_TOPIC: scan.requests.dlq
+      AUTH_JWT_SECRET: dev_auth_secret
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX: 120
+      DYNAMO_TABLE_NAME: scan_items
+      DYNAMODB_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-1
     ports:
       - "3000:3000"
 
@@ -56,6 +64,13 @@ services:
       DATABASE_URL: postgresql://app:app@postgres:5432/test_scan
       KAFKA_BROKER: kafka:29092
       SCAN_REQUEST_TOPIC: scan.requests
+      SCAN_DLQ_TOPIC: scan.requests.dlq
+      SCAN_RETRY_COUNT: 3
+      SCAN_RETRY_DELAY_MS: 750
+      DYNAMODB_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-1
+      DYNAMO_JOB_CACHE_TABLE: finished_scan_jobs
+      JOB_CACHE_TTL_SECONDS: 86400
       GITHUB_TOKEN: ""
 
   web:
@@ -64,8 +79,16 @@ services:
       dockerfile: apps/web/Dockerfile
     depends_on:
       - api
+    environment:
+      VITE_API_PROXY_TARGET: http://api:3000
     ports:
       - "5173:5173"
+
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    command: "-jar DynamoDBLocal.jar -inMemory -sharedDb"
+    ports:
+      - "8000:8000"
 
 volumes:
   pg_data:

@@ -32,3 +32,19 @@ git push -u origin main
 - API logs: webhook accepted
 - Worker logs: clone + scan complete
 - DB rows in `scan_jobs`, `scan_results`, `notifications`
+
+## 6) One-command local webhook simulation
+This sends a signed webhook to your local API and waits for callback:
+```bash
+npm run e2e:webhook
+```
+
+## 7) Postman collection
+Import:
+- `docs/postman/test-scan.postman_collection.json`
+
+Set variables:
+- `baseUrl`: `http://localhost:3000`
+- `webhookSecret`: `dev_secret`
+- `mainSha`: current `main` commit SHA from `sbaek4/test_scan`
+- `authToken`: JWT signed with `AUTH_JWT_SECRET` (`dev_auth_secret` in local compose)

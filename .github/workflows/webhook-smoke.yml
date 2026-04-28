@@ -1,0 +1,70 @@
+name: Webhook Smoke Test
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  send-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build webhook payload
+        id: payload
+        shell: bash
+        run: |
+          cat > payload.json <<'EOF'
+          {
+            "ref": "refs/heads/${{ github.ref_name }}",
+            "after": "${{ github.sha }}",
+            "repository": {
+              "full_name": "${{ github.repository }}",
+              "ssh_url": "https://github.com/${{ github.repository }}.git"
+            },
+            "head_commit": {
+              "id": "${{ github.sha }}",
+              "message": "github-actions webhook smoke test",
+              "timestamp": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+              "author": {
+                "name": "${{ github.actor }}",
+                "email": "actions@github.com"
+              }
+            }
+          }
+          EOF
+
+      - name: Sign payload
+        id: sign
+        shell: bash
+        env:
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$WEBHOOK_SECRET" ]; then
+            echo "WEBHOOK_SECRET secret is missing"
+            exit 1
+          fi
+          SIGNATURE=$(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" payload.json | awk '{print $2}')
+          echo "signature=sha256=$SIGNATURE" >> "$GITHUB_OUTPUT"
+
+      - name: Send webhook request
+        shell: bash
+        env:
+          TARGET_URL: ${{ secrets.WEBHOOK_TARGET_URL }}
+          SIGNATURE: ${{ steps.sign.outputs.signature }}
+          DELIVERY_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          if [ -z "$TARGET_URL" ]; then
+            echo "WEBHOOK_TARGET_URL secret is missing"
+            exit 1
+          fi
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
+            -X POST "$TARGET_URL/webhooks/github" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Delivery: $DELIVERY_ID" \
+            -H "X-GitHub-Event: push" \
+            -H "X-Hub-Signature-256: $SIGNATURE" \
+            --data-binary @payload.json)
+          cat response.json
+          test "$HTTP_CODE" -ge 200
+          test "$HTTP_CODE" -lt 300

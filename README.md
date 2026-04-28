@@ -19,3 +19,14 @@ Node.js (TypeScript) + PostgreSQL + Kafka + React platform that receives GitHub 
 
 ## Terraform
 Terraform scaffold is under `infra/terraform/aws`.
+
+## GitHub Actions Webhook Test
+This repo includes `.github/workflows/webhook-smoke.yml` to send a signed webhook from GitHub Actions.
+
+Set repository secrets before running:
+- `WEBHOOK_TARGET_URL`: public base URL of your API (for example your tunnel URL)
+- `WEBHOOK_SECRET`: same secret configured in your API (`WEBHOOK_SECRET`)
+
+Then trigger:
+- Push to `main`, or
+- Run `Webhook Smoke Test` manually from Actions tab.

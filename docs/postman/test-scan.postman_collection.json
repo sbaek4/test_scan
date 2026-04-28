@@ -1,0 +1,152 @@
+{
+  "info": {
+    "name": "Test Scan Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "fd4f807c-a8c4-4c84-bf44-6fdb9b52cf91"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "DB Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/health/db",
+          "host": ["{{baseUrl}}"],
+          "path": ["health", "db"]
+        }
+      }
+    },
+    {
+      "name": "GitHub Webhook (Signed)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const secret = pm.environment.get('webhookSecret');",
+              "const raw = pm.request.body.raw;",
+              "const signature = CryptoJS.HmacSHA256(raw, secret).toString(CryptoJS.enc.Hex);",
+              "pm.request.headers.upsert({ key: 'X-Hub-Signature-256', value: `sha256=${signature}` });",
+              "pm.request.headers.upsert({ key: 'X-GitHub-Delivery', value: `postman-${Date.now()}` });",
+              "pm.request.headers.upsert({ key: 'X-GitHub-Event', value: 'push' });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ref\": \"refs/heads/main\",\n  \"after\": \"{{mainSha}}\",\n  \"repository\": {\n    \"full_name\": \"sbaek4/test_scan\",\n    \"ssh_url\": \"git@github.com:sbaek4/test_scan.git\"\n  },\n  \"head_commit\": {\n    \"id\": \"{{mainSha}}\",\n    \"message\": \"postman test\",\n    \"timestamp\": \"2026-01-01T00:00:00Z\",\n    \"author\": {\n      \"name\": \"postman\",\n      \"email\": \"postman@example.com\"\n    }\n  },\n  \"callback_url\": \"{{callbackUrl}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/webhooks/github",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhooks", "github"]
+        }
+      }
+    },
+    {
+      "name": "Create Item (Auth)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"item-1\",\n  \"name\": \"first\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/items",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "items"]
+        }
+      }
+    },
+    {
+      "name": "List Items (Auth)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/items",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "items"]
+        }
+      }
+    },
+    {
+      "name": "Get Item (Auth)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/items/item-1",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "items", "item-1"]
+        }
+      }
+    },
+    {
+      "name": "Update Item (Auth)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"updated\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/items/item-1",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "items", "item-1"]
+        }
+      }
+    },
+    {
+      "name": "Delete Item (Auth)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/items/item-1",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "items", "item-1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "webhookSecret", "value": "dev_secret" },
+    { "key": "mainSha", "value": "replace_with_main_sha" },
+    { "key": "callbackUrl", "value": "http://host.docker.internal:3300/callback" },
+    { "key": "authToken", "value": "replace_with_jwt" }
+  ]
+}
