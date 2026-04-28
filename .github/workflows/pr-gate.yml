@@ -1,0 +1,51 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - feature/**
+      - fix/**
+      - chore/**
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run workspace tests
+        run: npm test
+
+      - name: Run workspace build
+        run: npm run build
+
+  docker-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate compose syntax
+        run: docker compose config
+
+  pr-gate:
+    runs-on: ubuntu-latest
+    needs:
+      - test-and-build
+      - docker-validate
+    steps:
+      - name: PR gate passed
+        run: echo "All required PR checks passed."

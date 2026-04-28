@@ -30,3 +30,21 @@ Set repository secrets before running:
 Then trigger:
 - Push to `main`, or
 - Run `Webhook Smoke Test` manually from Actions tab.
+
+## PR Pipeline and Required Criteria
+This repo includes `.github/workflows/pr-gate.yml` for PR validation.
+
+Checks run on PRs to `main`:
+- workspace tests (`npm test`)
+- workspace build (`npm run build`)
+- docker compose config validation (`docker compose config`)
+- gate status (`pr-gate`)
+
+To require all checks before merge:
+1. GitHub -> `Settings` -> `Branches` -> branch protection rule for `main`
+2. Enable `Require status checks to pass before merging`
+3. Select required checks:
+   - `test-and-build`
+   - `docker-validate`
+   - `pr-gate`
+   - `send-webhook` (optional but recommended)
