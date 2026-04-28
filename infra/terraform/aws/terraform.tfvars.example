@@ -1,0 +1,5 @@
+region = "us-east-1"
+subnet_ids = ["subnet-aaaa", "subnet-bbbb"]
+security_group_ids = ["sg-aaaa"]
+db_username = "app"
+db_password = "change_me"

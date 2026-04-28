@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.terraform
+*.tfstate
+*.tfstate.backup
+coverage
+.tmp
