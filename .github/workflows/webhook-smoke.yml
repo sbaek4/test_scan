@@ -38,29 +38,23 @@ jobs:
           EOF
 
       - name: Sign payload
+        if: ${{ secrets.WEBHOOK_SECRET != '' && secrets.WEBHOOK_TARGET_URL != '' }}
         id: sign
         shell: bash
         env:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
         run: |
-          if [ -z "$WEBHOOK_SECRET" ]; then
-            echo "WEBHOOK_SECRET secret is missing"
-            exit 1
-          fi
           SIGNATURE=$(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" payload.json | awk '{print $2}')
           echo "signature=sha256=$SIGNATURE" >> "$GITHUB_OUTPUT"
 
       - name: Send webhook request
+        if: ${{ secrets.WEBHOOK_SECRET != '' && secrets.WEBHOOK_TARGET_URL != '' }}
         shell: bash
         env:
           TARGET_URL: ${{ secrets.WEBHOOK_TARGET_URL }}
           SIGNATURE: ${{ steps.sign.outputs.signature }}
           DELIVERY_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          if [ -z "$TARGET_URL" ]; then
-            echo "WEBHOOK_TARGET_URL secret is missing"
-            exit 1
-          fi
           HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
             -X POST "$TARGET_URL/webhooks/github" \
             -H "Content-Type: application/json" \
@@ -71,3 +65,8 @@ jobs:
           cat response.json
           test "$HTTP_CODE" -ge 200
           test "$HTTP_CODE" -lt 300
+
+      - name: Skip when webhook secrets are not configured
+        if: ${{ secrets.WEBHOOK_SECRET == '' || secrets.WEBHOOK_TARGET_URL == '' }}
+        run: |
+          echo "Skipping webhook smoke request because WEBHOOK_SECRET/WEBHOOK_TARGET_URL is not set."
